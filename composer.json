@@ -1,0 +1,17 @@
+{
+    "name": "nextbox/neos-qrcode",
+    "type": "neos-plugin",
+    "description": "NextBox Neos Qr-Code generator",
+    "license": "GPL-3.0-only",
+    "require": {
+        "php": ">=8.1",
+        "neos/neos": "*",
+        "nextbox/neos-urlshortener": "*",
+        "endroid/qr-code": "~4.8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "NextBox\\Neos\\QrCode\\": "Classes"
+        }
+    }
+}

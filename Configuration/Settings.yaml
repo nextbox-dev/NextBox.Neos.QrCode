@@ -1,0 +1,35 @@
+Neos:
+  Flow:
+    mvc:
+      routes:
+        'NextBox.Neos.QrCode': true
+    resource:
+      storages:
+        qrCodePersistentResourcesStorage:
+          storage: Neos\Flow\ResourceManagement\Storage\WritableFileSystemStorage
+          storageOptions:
+            path: '%FLOW_PATH_DATA%Persistent/QrCode/'
+      collections:
+        qrCodeResourceCollection:
+          storage: qrCodePersistentResourcesStorage
+          target: localWebDirectoryQrCodePersistentResourcesTarget
+      targets:
+        localWebDirectoryQrCodePersistentResourcesTarget:
+          target: Neos\Flow\ResourceManagement\Target\FileSystemSymlinkTarget
+          targetOptions:
+            path: '%FLOW_PATH_WEB%_Resources/QrCode/'
+            baseUri: _Resources/QrCode/
+            extensionBlacklist:
+              aspx: true
+              cgi: true
+              php3: true
+              php4: true
+              php5: true
+              phtml: true
+              php: true
+              pl: true
+              py: true
+              pyc: true
+              pyo: true
+              rb: true
+            subdivideHashPathSegment: true

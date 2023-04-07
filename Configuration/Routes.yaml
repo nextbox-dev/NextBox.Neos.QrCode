@@ -1,0 +1,10 @@
+#-
+#  name: 'Create QR-Code for default'
+#  uriPattern: 'qr-code/{shortIdentifier}'
+#  defaults:
+#    '@package': 'NextBox.Neos.QrCode'
+#    '@controller': 'QrCode'
+#    '@action': 'generateQrCode'
+#    'shortType': 'default'
+#  appendExceedingArguments: true
+#  httpMethods: ['GET']

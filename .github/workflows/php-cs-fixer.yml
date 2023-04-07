@@ -1,0 +1,26 @@
+name: Format (PHP)
+
+on:
+  pull_request:
+
+jobs:
+  php-cs-fixer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate token
+        id: generate_token
+        uses: tibdex/github-app-token@b62528385c34dbc9f38e5f4225ac829252d1ea92
+        with:
+          app_id: ${{ secrets.TOKEN_APP_ID }}
+          private_key: ${{ secrets.TOKEN_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Run PHP CS Fixer
+        uses: oskarstark/php-cs-fixer-ga@1b312141100e6b0800d5df42f73016e680c60669
+
+      - uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a
+        with:
+          commit_message: 'fix: Apply php-cs-fixer changes'

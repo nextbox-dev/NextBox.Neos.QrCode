@@ -1,0 +1,21 @@
+name: Create new version
+on:
+  push:
+    branches:
+      - main
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate token
+        id: generate_token
+        uses: tibdex/github-app-token@586e1a624db6a5a4ac2c53daeeded60c5e3d50fe
+        with:
+          app_id: ${{ secrets.TOKEN_APP_ID }}
+          private_key: ${{ secrets.TOKEN_APP_PRIVATE_KEY }}
+
+      - name: Create Release
+        uses: google-github-actions/release-please-action@v3
+        with:
+          command: manifest
+          token: ${{ steps.generate_token.outputs.token }}
