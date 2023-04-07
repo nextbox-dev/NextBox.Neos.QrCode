@@ -1,13 +1,14 @@
 <?php
+
 namespace NextBox\Neos\QrCode\Controller;
 
 use Neos\ContentRepository\Domain\Model\NodeInterface;
 use Neos\ContentRepository\Exception\PageNotFoundException;
+use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Mvc\Controller\ActionController;
 use Neos\Flow\Mvc\Exception\StopActionException;
 use Neos\Neos\Service\LinkingService;
 use NextBox\Neos\QrCode\Services\QrCodeService;
-use Neos\Flow\Annotations as Flow;
 use NextBox\Neos\UrlShortener\Services\RedirectService;
 
 class QrCodeController extends ActionController
@@ -52,7 +53,7 @@ class QrCodeController extends ActionController
         $this->response->setHttpHeader('Pragma', 'public');
         $this->response->setHttpHeader('Last-Modified', gmdate('D, d M Y H:i:s') . ' GMT');
         $this->response->setContent($resource->getStream());
--
-        throw new StopActionException();
+        -
+                throw new StopActionException();
     }
 }

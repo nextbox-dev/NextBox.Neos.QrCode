@@ -1,4 +1,5 @@
 <?php
+
 namespace NextBox\Neos\QrCode\Command;
 
 use Neos\Flow\Annotations as Flow;
