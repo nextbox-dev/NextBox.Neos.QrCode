@@ -1,4 +1,5 @@
 <?php
+
 namespace NextBox\Neos\QrCode\Services;
 
 use Endroid\QrCode\Builder\Builder;
@@ -6,12 +7,12 @@ use Endroid\QrCode\Color\Color;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelLow;
 use Endroid\QrCode\RoundBlockSizeMode\RoundBlockSizeModeMargin;
+use Endroid\QrCode\Writer\PngWriter;
 use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Persistence\PersistenceManagerInterface;
 use Neos\Flow\ResourceManagement\PersistentResource;
 use Neos\Flow\ResourceManagement\ResourceManager;
 use Neos\Neos\Controller\CreateContentContextTrait;
-use Endroid\QrCode\Writer\PngWriter;
 use NextBox\Neos\UrlShortener\Domain\Model\UrlShortener;
 use NextBox\Neos\UrlShortener\Domain\Repository\UrlShortenerRepository;
 use NextBox\Neos\UrlShortener\Services\RedirectService;
@@ -23,9 +24,9 @@ class QrCodeService
 {
     use CreateContentContextTrait;
 
-    const FILE_EXTENSION = 'png';
+    public const FILE_EXTENSION = 'png';
 
-    const PERSISTENT_COLLECTION = 'qrCodeResourceCollection';
+    public const PERSISTENT_COLLECTION = 'qrCodeResourceCollection';
 
     /**
      * @Flow\Inject
@@ -97,8 +98,7 @@ class QrCodeService
         int    $backgroundColorR = 255,
         int    $backgroundColorG = 255,
         int    $backgroundColorB = 255
-    ): PersistentResource
-    {
+    ): PersistentResource {
         $result = Builder::create()
             ->writer(new PngWriter())
             ->writerOptions([])
@@ -115,7 +115,8 @@ class QrCodeService
 
         $resource = $this->resourceManager->importResourceFromContent(
             $result->getString(),
-            $shortIdentifier . '_' . $shortType . '.' . self::FILE_EXTENSION, self::PERSISTENT_COLLECTION
+            $shortIdentifier . '_' . $shortType . '.' . self::FILE_EXTENSION,
+            self::PERSISTENT_COLLECTION
         );
 
         $urlShort = $this->urlShortenerRepository->findOneByShortIdentifierAndShortType($shortIdentifier, $shortType);
@@ -206,8 +207,7 @@ class QrCodeService
         int    $backgroundColorR = 255,
         int    $backgroundColorG = 255,
         int    $backgroundColorB = 255
-    ): void
-    {
+    ): void {
         $this->createFile(
             $this->redirectService->createShortUri($shortIdentifier, $shortType),
             $shortIdentifier,
