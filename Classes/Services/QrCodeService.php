@@ -109,8 +109,7 @@ class QrCodeService
         int          $backgroundColorR = 255,
         int          $backgroundColorG = 255,
         int          $backgroundColorB = 255
-    ): PersistentResource
-    {
+    ): PersistentResource {
         $shortIdentifier = $urlShortener->getShortIdentifier();
         $shortType = $urlShortener->getShortType();
 
@@ -132,7 +131,8 @@ class QrCodeService
 
         $resource = $this->resourceManager->importResourceFromContent(
             $result->getString(),
-            $shortIdentifier . '_' . $shortType . '.' . self::FILE_EXTENSION, self::PERSISTENT_COLLECTION
+            $shortIdentifier . '_' . $shortType . '.' . self::FILE_EXTENSION,
+            self::PERSISTENT_COLLECTION
         );
 
         return $resource;
