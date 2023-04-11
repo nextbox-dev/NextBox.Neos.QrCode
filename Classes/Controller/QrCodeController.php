@@ -45,15 +45,18 @@ class QrCodeController extends ActionController
             throw new PageNotFoundException();
         }
 
-        $resource = $this->qrCodeService->getQrCodeResource($this->redirectService->createShortUri($shortIdentifier, $shortType), $shortIdentifier, $shortType);
+        $urlShortener = $this->qrCodeService->findUrlShortener($shortIdentifier, $shortType);
+        $resource = $this->qrCodeService->getOrCreateQrCodeResource($urlShortener);
+
+        $fileName = 'qrcode_' . $shortIdentifier . '_' . ($documentNode->getProperty('title') ?: '') . '.' . QrCodeService::FILE_EXTENSION;
 
         $this->response->setContentType('image/png');
-        $this->response->setHttpHeader('Content-disposition', 'inline; filename="qrcode_' . $shortIdentifier . '_' . ($documentNode->getProperty('title') ?: '') . '.png"');
+        $this->response->setHttpHeader('Content-disposition', 'inline; filename="' . $fileName . '"');
         $this->response->setHttpHeader('Content-Control', 'public, must-revalidate, max-age=0');
         $this->response->setHttpHeader('Pragma', 'public');
         $this->response->setHttpHeader('Last-Modified', gmdate('D, d M Y H:i:s') . ' GMT');
         $this->response->setContent($resource->getStream());
-        -
-                throw new StopActionException();
+-
+        throw new StopActionException();
     }
 }

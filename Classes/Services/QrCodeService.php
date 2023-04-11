@@ -13,6 +13,8 @@ use Neos\Flow\Persistence\PersistenceManagerInterface;
 use Neos\Flow\ResourceManagement\PersistentResource;
 use Neos\Flow\ResourceManagement\ResourceManager;
 use Neos\Neos\Controller\CreateContentContextTrait;
+use NextBox\Neos\QrCode\Domain\Model\QrCode;
+use NextBox\Neos\QrCode\Domain\Repository\QrCodeRepository;
 use NextBox\Neos\UrlShortener\Domain\Model\UrlShortener;
 use NextBox\Neos\UrlShortener\Domain\Repository\UrlShortenerRepository;
 use NextBox\Neos\UrlShortener\Services\RedirectService;
@@ -42,40 +44,51 @@ class QrCodeService
 
     /**
      * @Flow\Inject
+     * @var QrCodeRepository
+     */
+    protected $qrCodeRepository;
+
+    /**
+     * @Flow\Inject
      * @var UrlShortenerRepository
      */
     protected $urlShortenerRepository;
 
     /**
-     * @Flow\Inject()
+     * @Flow\Inject
      * @var PersistenceManagerInterface
      */
     protected $persistenceManager;
 
+
     /**
      * Get or generate a QR-Code for an uri
      *
-     * @param string $uri
-     * @param string $shortIdentifier
+     * @param UrlShortener $urlShortener
      * @return PersistentResource|null
      */
-    public function getQrCodeResource(string $uri, string $shortIdentifier, string $shortType = 'default'): ?PersistentResource
+    public function getOrCreateQrCodeResource(UrlShortener $urlShortener): ?PersistentResource
     {
-        $resource = $this->getFile($shortIdentifier, $shortType);
+        $qrCode = $this->getQrCodeOfUrlShortener($urlShortener);
+
+        $resource = $this->getFileForQrCode($qrCode);
 
         if (!$resource) {
-            $resource = $this->createFile($uri, $shortIdentifier, $shortType);
+            $resource = $this->createFileForUrlShortener($urlShortener);
+            $qrCode->setResource($resource);
+            $this->qrCodeRepository->update($qrCode);
+
+            // Skip HTTP safe request specification
+            $this->persistenceManager->persistAll();
         }
 
         return ($resource instanceof PersistentResource) ? $resource : null;
     }
 
     /**
-     * Create a QrCode for a given uri and save the image to the filesystem
+     * Create a QrCode for a given UrlShortener and persist the generated image
      *
-     * @param string $uri
-     * @param string $shortIdentifier
-     * @param string $shortType
+     * @param UrlShortener $urlShortener
      * @param int $size
      * @param int $margin
      * @param int $foregroundColorR
@@ -86,19 +99,23 @@ class QrCodeService
      * @param int $backgroundColorB
      * @return PersistentResource
      */
-    public function createFile(
-        string $uri,
-        string $shortIdentifier,
-        string $shortType = 'default',
-        int    $size = 300,
-        int    $margin = 10,
-        int    $foregroundColorR = 0,
-        int    $foregroundColorG = 0,
-        int    $foregroundColorB = 0,
-        int    $backgroundColorR = 255,
-        int    $backgroundColorG = 255,
-        int    $backgroundColorB = 255
-    ): PersistentResource {
+    public function createFileForUrlShortener(
+        UrlShortener $urlShortener,
+        int          $size = 300,
+        int          $margin = 10,
+        int          $foregroundColorR = 0,
+        int          $foregroundColorG = 0,
+        int          $foregroundColorB = 0,
+        int          $backgroundColorR = 255,
+        int          $backgroundColorG = 255,
+        int          $backgroundColorB = 255
+    ): PersistentResource
+    {
+        $shortIdentifier = $urlShortener->getShortIdentifier();
+        $shortType = $urlShortener->getShortType();
+
+        $uri = $this->redirectService->createShortUri($shortIdentifier, $shortType);
+
         $result = Builder::create()
             ->writer(new PngWriter())
             ->writerOptions([])
@@ -115,34 +132,22 @@ class QrCodeService
 
         $resource = $this->resourceManager->importResourceFromContent(
             $result->getString(),
-            $shortIdentifier . '_' . $shortType . '.' . self::FILE_EXTENSION,
-            self::PERSISTENT_COLLECTION
+            $shortIdentifier . '_' . $shortType . '.' . self::FILE_EXTENSION, self::PERSISTENT_COLLECTION
         );
-
-        $urlShort = $this->urlShortenerRepository->findOneByShortIdentifierAndShortType($shortIdentifier, $shortType);
-
-        if ($urlShort instanceof UrlShortener) {
-            $urlShort->setResource($resource);
-            $this->urlShortenerRepository->update($urlShort);
-            $this->persistenceManager->persistAll();
-        }
 
         return $resource;
     }
 
     /**
-     * Get the resource of a short identifier and short type
+     * Get the resource of a qr code
      *
-     * @param string $shortIdentifier
-     * @param string $shortType
+     * @param QrCode|null $qrCode
      * @return PersistentResource|null
      */
-    public function getFile(string $shortIdentifier, string $shortType = 'default'): ?PersistentResource
+    public function getFileForQrCode(?QrCode $qrCode): ?PersistentResource
     {
-        $urlShort = $this->urlShortenerRepository->findOneByShortIdentifierAndShortType($shortIdentifier, $shortType);
-
-        if ($urlShort instanceof UrlShortener) {
-            $resource = $urlShort->getResource();
+        if ($qrCode instanceof QrCode) {
+            $resource = $qrCode->getResource();
 
             if ($resource instanceof PersistentResource) {
                 return $resource;
@@ -155,71 +160,71 @@ class QrCodeService
     /**
      * Delete the resource of a QR-Code
      *
-     * @param string $shortIdentifier
-     * @param string $shortType
-     * @return bool
+     * @param QrCode $qrCode
+     * @return void
      */
-    public function deleteFile(string $shortIdentifier, string $shortType = 'default'): bool
+    public function deleteQrCodeResource(QrCode $qrCode): void
     {
-        $urlShort = $this->urlShortenerRepository->findOneByShortIdentifierAndShortType($shortIdentifier, $shortType);
+        $resource = $qrCode->getResource();
+        $qrCode->setResource(null);
+        $this->qrCodeRepository->update($qrCode);
 
-        if ($urlShort instanceof UrlShortener) {
-            $resource = $urlShort->getResource();
-            $urlShort->setResource(null);
-            $this->urlShortenerRepository->update($urlShort);
-
-            if ($resource instanceof PersistentResource) {
-                $this->resourceManager->deleteResource($resource);
-            }
-
-            $this->persistenceManager->persistAll();
-
-            return true;
+        if ($resource instanceof PersistentResource) {
+            $this->resourceManager->deleteResource($resource);
         }
-
-        return false;
     }
 
     /**
-     * Generate the uri for the action to get a qr code image
-     * Send a request to this uri
+     * Remove a QrCode completely
      *
-     * @param string $shortIdentifier the value of the short identifier
-     * @param string $shortType
-     * @param int $size
-     * @param int $margin
-     * @param int $foregroundColorR
-     * @param int $foregroundColorG
-     * @param int $foregroundColorB
-     * @param int $backgroundColorR
-     * @param int $backgroundColorG
-     * @param int $backgroundColorB
+     * @param QrCode $qrCode
      * @return void
      */
-    public function generateAndSendToUri(
-        string $shortIdentifier,
-        string $shortType = 'default',
-        int    $size = 300,
-        int    $margin = 10,
-        int    $foregroundColorR = 0,
-        int    $foregroundColorG = 0,
-        int    $foregroundColorB = 0,
-        int    $backgroundColorR = 255,
-        int    $backgroundColorG = 255,
-        int    $backgroundColorB = 255
-    ): void {
-        $this->createFile(
-            $this->redirectService->createShortUri($shortIdentifier, $shortType),
-            $shortIdentifier,
-            $shortType,
-            $size,
-            $margin,
-            $foregroundColorR,
-            $foregroundColorG,
-            $foregroundColorB,
-            $backgroundColorR,
-            $backgroundColorG,
-            $backgroundColorB
-        );
+    public function remove(QrCode $qrCode): void
+    {
+        $this->deleteQrCodeResource($qrCode);
+        $this->qrCodeRepository->remove($qrCode);
+    }
+
+    /**
+     * Find a UrlShortener by the short identifier and the short type
+     *
+     * @param string $shortIdentifier
+     * @param string $shortType
+     * @return UrlShortener|null
+     */
+    public function findUrlShortener(string $shortIdentifier, string $shortType = 'default'): ?UrlShortener
+    {
+        return $this->urlShortenerRepository->findOneByShortIdentifierAndShortType($shortIdentifier, $shortType);
+    }
+
+    /**
+     * Find a QrCode by url shortener
+     *
+     * @param UrlShortener $urlShortener
+     * @return UrlShortener|null
+     */
+    public function findQrCode(UrlShortener $urlShortener): ?QrCode
+    {
+        return $this->qrCodeRepository->findOneByUrlShortener($urlShortener);
+    }
+
+    /**
+     * Get an existing qr code or initialize a new one
+     *
+     * @param UrlShortener $urlShortener
+     * @return QrCode
+     */
+    public function getQrCodeOfUrlShortener(UrlShortener $urlShortener): QrCode
+    {
+        $qrCode = $this->qrCodeRepository->findOneByUrlShortener($urlShortener);
+
+        if (!$qrCode instanceof QrCode) {
+            $qrCode = new QrCode();
+            $qrCode->setUrlShortener($urlShortener);
+            $this->qrCodeRepository->add($qrCode);
+        }
+
+        return $qrCode;
     }
 }

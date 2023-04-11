@@ -2,7 +2,7 @@
 
 This package creates QR-Codes for shortened urls in Neos. Note this package requires `nextbox/neos-qrcode`.
 
-The qr code images are stored in a persistent resource collection.
+If the shortened url was changed then the persisted QrCode will be regenerated immediately, the old image will be deleted.
 
 ## Configuration
 

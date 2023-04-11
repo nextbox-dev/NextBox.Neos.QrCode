@@ -1,0 +1,2 @@
+'NextBox\Neos\UrlShortener\Services\BackendServiceInterface':
+  className: 'NextBox\Neos\QrCode\Services\BackendService'
