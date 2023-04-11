@@ -56,7 +56,7 @@ class QrCodeController extends ActionController
         $this->response->setHttpHeader('Pragma', 'public');
         $this->response->setHttpHeader('Last-Modified', gmdate('D, d M Y H:i:s') . ' GMT');
         $this->response->setContent($resource->getStream());
-        -
-                throw new StopActionException();
+
+        throw new StopActionException();
     }
 }
