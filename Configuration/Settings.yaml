@@ -33,3 +33,9 @@ Neos:
               pyo: true
               rb: true
             subdivideHashPathSegment: true
+NextBox:
+  Neos:
+    QrCode:
+      backend:
+        # Should QR-Codes be generated from the backend after a node publish?
+        generateQrCodesFromBackend: true

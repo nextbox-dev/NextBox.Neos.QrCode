@@ -27,6 +27,21 @@ Create a new `Routes.yaml` with the name of the type that should be used:
   httpMethods: ['GET']
 ```
 
+### Disable Image Generation from the Backend
+
+If you want to disable the image generation from the backend disable the following settings. After a Node was published the resource will be deleted.
+
+```yaml
+# Settings.yaml
+
+NextBox:
+  Neos:
+    QrCode:
+      backend:
+        # Should QR-Codes be generated from the backend after a node publish?
+        generateQrCodesFromBackend: false
+```
+
 ### Extensibility
 
 Follow the steps in the ReadMe of the package `nextbox/neos-qrcode` to create your own definition for short url redirections.

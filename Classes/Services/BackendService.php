@@ -32,6 +32,12 @@ class BackendService extends \NextBox\Neos\UrlShortener\Services\BackendService
     protected array $typeSettings;
 
     /**
+     * @Flow\InjectConfiguration(path="backend", package="NextBox.Neos.QrCode")
+     * @var array
+     */
+    protected array $backendSettings;
+
+    /**
      * Loop to update the short identifier or create a new entry
      *
      * @param NodeInterface $node
@@ -67,8 +73,10 @@ class BackendService extends \NextBox\Neos\UrlShortener\Services\BackendService
         $qrCode = $this->qrCodeService->getQrCodeOfUrlShortener($urlShortener);
         $this->qrCodeService->deleteQrCodeResource($qrCode);
 
-        $resource = $this->qrCodeService->createFileForUrlShortener($urlShortener);
-        $qrCode->setResource($resource);
+        if ($this->backendSettings['generateQrCodesFromBackend']) {
+            $resource = $this->qrCodeService->createFileForUrlShortener($urlShortener);
+            $qrCode->setResource($resource);
+        }
 
         $this->qrCodeRepository->update($qrCode);
 
