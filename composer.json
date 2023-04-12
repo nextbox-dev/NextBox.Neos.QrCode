@@ -6,7 +6,7 @@
     "require": {
         "php": ">=8.1",
         "neos/neos": "*",
-        "nextbox/neos-urlshortener": "^1.0.0",
+        "nextbox/neos-urlshortener": "^1.1.0",
         "endroid/qr-code": "~4.8.2"
     },
     "autoload": {

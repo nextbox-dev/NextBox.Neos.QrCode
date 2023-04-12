@@ -6,9 +6,11 @@ use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Cli\CommandController;
 use Neos\Flow\Persistence\PersistenceManagerInterface;
 use NextBox\Neos\QrCode\Domain\Model\QrCode;
+use NextBox\Neos\QrCode\Domain\Repository\QrCodeRepository;
 use NextBox\Neos\QrCode\Services\QrCodeService;
 use NextBox\Neos\UrlShortener\Domain\Model\UrlShortener;
 use NextBox\Neos\UrlShortener\Domain\Repository\UrlShortenerRepository;
+use NextBox\Neos\UrlShortener\Services\RedirectService;
 
 class QrCodeCommandController extends CommandController
 {
@@ -17,6 +19,12 @@ class QrCodeCommandController extends CommandController
      * @var QrCodeService
      */
     protected $qrCodeService;
+
+    /**
+     * @Flow\Inject
+     * @var RedirectService
+     */
+    protected $redirectService;
 
     /**
      * @Flow\Inject()
@@ -29,6 +37,18 @@ class QrCodeCommandController extends CommandController
      * @var UrlShortenerRepository
      */
     protected $urlShortenerRepository;
+
+    /**
+     * @Flow\Inject
+     * @var QrCodeRepository
+     */
+    protected $qrCodeRepository;
+
+    /**
+     * @Flow\InjectConfiguration(path="backend", package="NextBox.Neos.QrCode")
+     * @var array
+     */
+    protected array $backendSettings;
 
     /**
      * Generate a new qr code if it is missing
@@ -86,6 +106,62 @@ class QrCodeCommandController extends CommandController
 
         $this->qrCodeService->remove($qrCode);
         $this->output->outputLine('<success>The qr-code for the `short-identifier` ' . $shortIdentifier . ' was removed successfully.</success>');
+    }
+
+    /**
+     * Initialize all nodes with a qr code
+     *
+     * @param string $shortType name of the short type
+     * @param bool $forceRecreation regenerate if there is already a short type existing
+     * @param int $offset offset for nodes
+     * @param int $limit limit to read nodes
+     * @param bool $forceWithImages ignores the settings and regenerates the image as well
+     * @return void
+     *
+     * @see nextbox.neos.urlshortener:urlshortener:init
+     */
+    public function initCommand(string $shortType, bool $forceRecreation = false, int $offset = 0, int $limit = 999999, bool $forceWithImages = false): void
+    {
+        $nodes = $this->redirectService->getNodesByShortType($shortType, $offset, $limit);
+        $propertyName = $this->redirectService->getPropertyNameOfType($shortType);
+
+        if (!empty($nodes)) {
+            foreach ($nodes as $node) {
+                $shortIdentifier = $node->hasProperty($propertyName) ? $node->getProperty($propertyName) : null;
+                if (!$shortIdentifier) {
+                    continue;
+                }
+
+                $urlShortener = $this->urlShortenerRepository->findOneByNodeAndShortType($node, $shortType);
+                $newUrl = false;
+
+                if (!$urlShortener instanceof UrlShortener) {
+                    $urlShortener = new UrlShortener();
+                    $urlShortener->setNode($node->getNodeData());
+                    $urlShortener->setShortType($shortType);
+                    $newUrl = true;
+                }
+
+                if ($newUrl || $forceRecreation) {
+                    $urlShortener->setShortIdentifier($shortIdentifier);
+                }
+
+                $qrCode = $this->qrCodeService->findQrCode($urlShortener);
+
+                if (!$qrCode instanceof QrCode) {
+                    $qrCode = new QrCode();
+                    $qrCode->setUrlShortener($urlShortener);
+                    $this->qrCodeRepository->add($qrCode);
+                }
+
+                if ($this->backendSettings['generateQrCodesFromBackend'] || $forceWithImages) {
+                    $resource = $this->qrCodeService->createFileForUrlShortener($urlShortener);
+                    $qrCode->setResource($resource);
+                }
+
+                $this->qrCodeRepository->update($qrCode);
+            }
+        }
     }
 
     /**
